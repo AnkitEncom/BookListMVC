@@ -11,7 +11,8 @@ namespace BookListMVC.Controllers
     public class BooksController : Controller
     {
         private readonly ApplicationDbContext _db;
-
+        [BindProperty]
+        public Book Book { get; set; }
         public BooksController(ApplicationDbContext db)
         {
             _db = db;
@@ -19,6 +20,46 @@ namespace BookListMVC.Controllers
         public IActionResult Index()
         {
             return View();
+        }
+        // Get Method to Load Upsert View 
+        public IActionResult Upsert(int? id)
+        {
+            Book = new Book();
+            if (id == null)
+            {
+                // Insert
+                return View(Book);
+            }
+            else
+            {
+                // Update
+                Book = _db.Books.FirstOrDefault(u => u.Id == id);
+                if (Book == null)
+                {
+                    return NotFound();
+                }
+                return View(Book);
+            }
+        }
+        [HttpPost]
+        public IActionResult Upsert()
+        {
+            if (ModelState.IsValid)
+            {
+                if (Book.Id == 0)
+                {
+                    // Add
+                    _db.Books.Add(Book);
+                }
+                else
+                {
+                    //Update
+                    _db.Books.Update(Book);
+                }
+                _db.SaveChanges();
+                return RedirectToAction("Index");
+            }
+            return View(Book);
         }
         #region API Call
         [HttpGet]
@@ -36,7 +77,7 @@ namespace BookListMVC.Controllers
             }
             _db.Books.Remove(bookFromDb);
             await _db.SaveChangesAsync();
-            return Json(new { success = false, message = "Error While Deleting" });
+            return Json(new { success = true, message = "Record Deleted Successfully" });
         }
         #endregion
     }
